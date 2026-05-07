@@ -2,14 +2,15 @@
   "name": "tidal-telescope",
   "type": "module",
   "version": "0.0.1",
-  "scripts": {
-    "build:diagrams": "node node_modules/likec4/bin/likec4.mjs build . --output public/diagrams/ --base /diagrams/ --use-hash-history",
-    "dev": "npm run build:diagrams && astro dev",
+"scripts": {
+    "build:diagrams": "node node_modules/likec4/bin/likec4.mjs build . --output public/diagrams/ --base /26-spring-01-mundamail/diagrams/ --use-hash-history",
+    "build:diagrams:local": "node node_modules/likec4/bin/likec4.mjs build . --output public/diagrams/ --base /diagrams/ --use-hash-history",
+    "dev": "npm run build:diagrams:local && astro dev",
     "start": "astro dev",
     "build": "npm run build:diagrams && astro build",
     "preview": "astro preview",
     "astro": "astro"
-  },
+},
   "dependencies": {
     "@astrojs/react": "^5.0.4",
     "@astrojs/starlight": "^0.38.2",
