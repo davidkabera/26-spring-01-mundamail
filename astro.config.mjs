@@ -4,11 +4,13 @@ import starlight from '@astrojs/starlight';
 
 import react from '@astrojs/react';
 
+const base = process.env.CI ? '/26-spring-01-mundamail' : '';
+
 // https://astro.build/config
 export default defineConfig({
 
     site: "https://unideb-advanced-software-engineering.github.io",
-    base: "/26-spring-01-mundamail",
+    base,
 
 
     integrations: [starlight({
