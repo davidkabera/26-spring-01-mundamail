@@ -1,0 +1,1 @@
+import{_ as t}from"./main-BM5IoAcQ.js";let n={default:()=>t(()=>import("./dot-DFmXfAGS.js"),[])};async function a(o){const r=n[o];if(!r)throw new Error("Unknown projectId: "+o);return await r()}export{a as loadDotSources,n as loadDotSourcesFn};

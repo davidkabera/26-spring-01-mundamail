@@ -1,210 +1,204 @@
- 
 specification {
+    element user {
+        style {
+            shape person
+            color muted
+        }
+    }
     element externalClient {
         style {
             shape person
             color gray
         }
     }
-
+    element system {
+        style {
+            color muted
+        }
+    }
     element edgeLayer {
-      style {
-        shape component
-        color indigo
-      }
+        style {
+            shape component
+            color indigo
+        }
     }
-    element eventLayer{
-      style {
-
-        color sky
-      }
+    element eventLayer {
+        style {
+            color sky
+        }
     }
-
-    element processingLayer{
-      style {
-        color green
-      }
+    element processingLayer {
+        style {
+            color green
+        }
     }
-
-    element persistenceLayer{
-      style {
-        color amber
-      }
+    element persistenceLayer {
+        style {
+            color amber
+        }
     }
-    element worker{
-      style {
-
-        color red
-      }
+    element worker {
+        style {
+            color red
+        }
     }
-    element dataBase{
-      style {
-        shape cylinder
-        color gray
-      }
+    element dataBase {
+        style {
+            shape cylinder
+            color gray
+        }
     }
-
     element module {
-      style {
-        color sky
-      }
+        style {
+            color sky
+        }
     }
-    element queue{
-      style {
-        shape queue
-        color sky
-      }
+    element queue {
+        style {
+            shape queue
+            color sky
+        }
     }
-
     element frontend {
-      style {
-        shape browser
-        color indigo
-      }
+        style {
+            shape browser
+            color indigo
+        }
     }
     element mobile {
-      style {
-        shape mobile
-        color indigo
-      }
+        style {
+            shape mobile
+            color indigo
+        }
     }
-    element user {
-      style {
-        shape person
-        color muted
-      }
-    }
-
-
 }
 
 model {
-  govAgency = module 'Gov Agency' {
-    description 'REST CLIENT'
-  }
-  user = user 'Web/Mobile Client' {
-    description 'User & Admin Interfaces'
-
-    userMobile = mobile 'Mobile App' {
-        description 'Native mobile interface'
+    govAgency = externalClient 'Gov Agency' {
+        description 'REST Client'
     }
 
-    userWeb = frontend 'Web Client' {
-        description 'Browser-based UI'
-    }
+    webClient = user 'Web/Mobile Client' {
+        description 'User & Admin Interfaces'
 
-    admin = frontend 'Admin Portal' {
-        description 'Administrative interface'
-    }
-    }
-
-  userMobile -> APIGateway 'implements'
-  userWeb -> APIGateway 'implements'
-  admin -> APIGateway 'implements'
-  govAgency -> APIGateway 'intergrates'
-
-
-
-  edgelayer = edgeLayer{
-      APIGateway = edgeLayer 'API Gateway' {
-        description 'TLS termination, Rate limiting and Request routing '
-      }
-  }
-  eventlayer = eventLayer{
-    identityServer = module 'Identity Server' {
-      description 'OAuth 2.0 , LDAP/SAML'
-      }
-
-    roleModule = module 'RBAC Module' {
-      description 'Role-based access control'
-      }
-
-    eventBus = queue 'Event Bus' {
-        description 'Topics: msg.inbound, msg.outbound, msg.audit, msg.dlq'
-
-
-    }
-  }
-
-    APIGateway -> identityServer
-    APIGateway -> eventBus
-    APIGateway -> roleModule
-
-    ProcessingLayer = processingLayer{
-
-      inspector = worker 'Content Inspector'{
-        description 'Blocks .exe .bat .sh at ingestion point'
+        userMobile = mobile 'Mobile App' {
+            description 'Native mobile interface'
         }
-      workers = worker 'Message Workers'{
-        description 'Async consumers, DLQ, Retry & backoff logic'
+        userWeb = frontend 'Web Client' {
+            description 'Browser-based UI'
         }
-      bridge = worker 'REST --> SMTP Bridge'{
-        description 'Translates REST calls to IMAP/SMTP commands'
+        adminPortal = frontend 'Admin Portal' {
+            description 'Administrative interface'
         }
-      logger = worker 'Audit Logger'{
-        description 'Tamper-evident log All API calls & admin events'
+    }
+
+    gms = system 'Government Messaging System' {
+
+        edgeSub = edgeLayer 'Edge Layer' {
+            apiGateway = edgeLayer 'API Gateway' {
+                description 'TLS termination, rate limiting and request routing'
+            }
         }
 
+        eventSub = eventLayer 'Event Layer' {
+            identityServer = module 'Identity Server' {
+                description 'OAuth 2.0, LDAP/SAML'
+            }
+            roleModule = module 'RBAC Module' {
+                description 'Role-based access control'
+            }
+            eventBus = queue 'Event Bus' {
+                description 'Topics: msg.inbound, msg.outbound, msg.audit, msg.dlq'
+            }
+        }
+
+        processingSub = processingLayer 'Processing Layer' {
+            inspector = worker 'Content Inspector' {
+                description 'Blocks .exe, .bat, .sh at ingestion point'
+            }
+            msgWorkers = worker 'Message Workers' {
+                description 'Async consumers, DLQ, retry & backoff logic'
+            }
+            smtpBridge = worker 'REST-SMTP Bridge' {
+                description 'Translates REST calls to IMAP/SMTP commands'
+            }
+            auditLogger = worker 'Audit Logger' {
+                description 'Tamper-evident log of all API calls & admin events'
+            }
+        }
+
+        persistenceSub = persistenceLayer 'Persistence Layer' {
+            emailStore = dataBase 'Email Store' {
+                description 'AES-256 at rest, IMAP-accessible mailboxes'
+            }
+            archiveDb = dataBase 'Archive DB' {
+                description '5-year retention tier, separate storage node'
+            }
+            replicaDb = dataBase 'Replica/Backup' {
+                description 'Daily snapshots and failover'
+            }
+            logStore = dataBase 'Audit Log Store' {
+                description 'Regulatory-compliant, 12-month retention'
+            }
+        }
+
+        // Edge -> Event Layer
+        apiGateway -> identityServer 'Authenticates via'
+        apiGateway -> roleModule 'Authorizes via'
+        apiGateway -> eventBus 'Publishes events to'
+
+        // Event Bus -> Processing Layer
+        eventBus -> inspector 'msg.inbound'
+        eventBus -> msgWorkers 'msg.outbound'
+        eventBus -> smtpBridge 'msg.outbound'
+        eventBus -> auditLogger 'msg.audit'
+
+        // Processing Layer -> Persistence Layer
+        inspector -> emailStore 'Stores filtered emails'
+        msgWorkers -> archiveDb 'Archives messages'
+        smtpBridge -> replicaDb 'Syncs via IMAP/SMTP'
+        auditLogger -> logStore 'Writes audit entries'
     }
 
-
-    PersistenceLayer = persistenceLayer{
-      emailStore = dataBase 'Email Store'{
-        description 'AES 256 at rest IMAP-accessible mailboxes'
-      }
-
-      archive = dataBase 'Archive DB'{
-        description '5-year retention tier Separate storage node'
-      }
-
-      replica = dataBase 'Replica/Backup'{
-        description 'Daily snapshots and failovers'
-      }
-
-      logStore = dataBase 'Audit Log Store'{
-        description 'Regulatory compliant 12-month retention'
-      }
-
-      eventBus -> inspector
-      eventBus -> workers
-      eventBus -> bridge
-      eventBus -> logger
-      inspector -> emailStore
-      workers -> archive
-      bridge -> replica
-      logger -> logStore
-
-    }
-
-
-
+    // External actors -> System
+    userMobile -> apiGateway 'API calls via HTTPS'
+    userWeb -> apiGateway 'API calls via HTTPS'
+    adminPortal -> apiGateway 'API calls via HTTPS'
+    govAgency -> apiGateway 'Integrates via REST'
 }
 
-
 views {
-  view systemContextDiagram {
-    title 'C1: System Context'
-    include *
-  }
-  view webClientStructure {
-    title 'C4: Web/Mobile Client - Internal'
-    include user.userMobile, user.userWeb, user.admin
-  }
+    view systemContext {
+        title 'C1: System Context'
+        include *
+    }
 
-  view containerView {
-    title 'C2: System Containers'
-    include edgelayer, eventlayer, ProcessingLayer, PersistenceLayer
-  }
+    view containerView of gms {
+        title 'C2: Container View'
+        include *
+        include edgeSub.*
+        include eventSub.*
+        include processingSub.*
+        include persistenceSub.*
+    }
 
-  view eventLayerComponents {
-    title 'C3: Event Layer - Components'
-    include eventlayer.*
-  }
+    view eventLayerComponents of eventSub {
+        title 'C3: Event Layer - Components'
+        include *
+    }
 
-  view processingLayerComponents {
-    title 'C3: Processing Layer - Components'
-    include ProcessingLayer.*
-  }
+    view processingLayerComponents of processingSub {
+        title 'C3: Processing Layer - Components'
+        include *
+    }
 
+    view persistenceLayerComponents of persistenceSub {
+        title 'C3: Persistence Layer - Components'
+        include *
+    }
 
+    view webClientView of webClient {
+        title 'C4: Web/Mobile Client - Internal'
+        include *
+    }
 }
